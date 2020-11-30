@@ -9,6 +9,11 @@ function banner()
         </h3><?php
     } 
 }
+function error($mensaje)
+{?>
+    <h3><?= $mensaje ?></h3><?php
+    return true;
+}
 function recoger($tipo, $nombre)
 {
     return filter_input($tipo, $nombre, FILTER_CALLBACK, [
@@ -28,6 +33,38 @@ function recoger_post($nombre)
 function logueado()
 {
     return $_SESSION['login'] ?? false;
+}
+function comprobar_usuario($login, $pdo)
+{
+    $sent = $pdo->prepare('SELECT *
+                             FROM usuario
+                            WHERE login = :login');
+    $sent->execute(['login' => $login]);
+
+    return $sent->fetchColumn() != 0;
+}
+
+function comprobar_usuario_otra_fila($login, $pdo, $id)
+{
+    $sent = $pdo->prepare('SELECT *
+                             FROM usuario
+                            WHERE login = :login
+                              AND id != :id');
+    $sent->execute(['login' => $login,
+                    'id' => $id]);
+
+    return $sent->fetchColumn() != 0;
+}
+function comprobar_estado($id) 
+{
+    $pdo = conectar();
+
+    $sent = $pdo->prepare('SELECT *
+                             FROM citas
+                            WHERE usuario_id = :id');
+    $sent->execute(['id' => $id]);
+
+    return $sent->fetchColumn() != 0;
 }
 
 function encabezado()

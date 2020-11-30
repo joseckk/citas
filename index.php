@@ -30,7 +30,7 @@
                                 <a class="nav-link" href="citas/index.php">Citas <span class="sr-only">(current)</span></a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="usuarios/principal.php">Usuarios</a>
+                                <a class="nav-link" href="usuarios/index.php">Usuarios</a>
                             </li>
                         </ul>
                     </div>
