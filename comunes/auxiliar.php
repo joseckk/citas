@@ -59,12 +59,14 @@ function comprobar_usuario_otra_fila($login, $pdo, $id)
 
     return $sent->fetchColumn() != 0;
 }
-function comprobar_estado($id, $pdo) 
+function comprobar_estado($id, $fecha_hoy, $pdo) 
 {
-    $sent = $pdo->prepare('SELECT *
+    $sent = $pdo->prepare("SELECT *
                              FROM citas
-                            WHERE usuario_id = :id');
-    $sent->execute(['id' => $id]);
+                            WHERE fecha_hora > :fecha_hoy
+                              AND usuario_id = :usu_id");
+    $sent->execute(['fecha_hoy' => $fecha_hoy
+                  , 'usu_id' => $id]);
 
     return $sent->fetchColumn() != 0;
 }
@@ -138,7 +140,6 @@ function pintar_tabla($sent)
                                 value="<?= $_SESSION['csrf_token'] ?>">
                             <button type="submit" class="bg-danger">anular</button>
                         </form>
-                        <a href="/citas/modificar.php?id=<?= hh($id) ?>">modificar</a>
                     </td>
                 </tr>
             <?php endforeach ?>
@@ -155,7 +156,7 @@ function encabezado()
 {
     if ($logueado = logueado()): ?>
         <form class="row justify-content-end mt-2 mr-5" action="/comunes/logout.php" method="post">
-            <a class="col-sm-1" href="/usuarios/miscitas.php"><h3><strong>Mis citas</strong></h3></a>
+            <a class="col-sm-1" href="/citas/historico.php"><h3><strong>Mis citas</strong></h3></a>
             <?= $logueado['nombre'] ?>
             <button type="submit" class="btn btn-outline-danger ml-2">Logout</button>
         </form><?php

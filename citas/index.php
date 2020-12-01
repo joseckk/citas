@@ -38,22 +38,21 @@
     $pdo = conectar();
     $usu_id = logueado()['id'];
     $sent = null;
-
-    if (comprobar_estado($usu_id, $pdo)) {
-        $sent = $pdo->prepare("SELECT * 
+    $fecha = date("Y-m-d H:i:s");
+    $fecha_fmt = new DateTime($fecha);
+    $fecha_fmt->setTimezone(new DateTimeZone('Europe/Madrid'));
+    $fecha_hoy = $fecha_fmt->format("Y-m-d H:i:s");
+    if (comprobar_estado($usu_id, $fecha_hoy, $pdo)) {
+        $sent = $pdo->prepare("SELECT *
                                  FROM citas
                                 WHERE usuario_id = :usu_id");
-        $sent->execute(['usu_id' => $usu_id]);
+        $sent->execute(['usu_id' => $usu_id]);   
     } else {?>
         <div class="row ml-5">
         <div class="alert alert-danger mt-2" role="alert">
             <?= 'No tiene cita asignada' ?>
         </div>
         </div><?php
-        
-        $fecha = date("Y-m-d H:i:s");
-        $fecha_fmt = new DateTime($fecha);
-        $fecha_fmt->setTimezone(new DateTimeZone('Europe/Madrid'));
         $dia = $fecha_fmt->format('d-m-Y');
         $hora = $fecha_fmt->format('H:i:s');
             
@@ -117,9 +116,9 @@
             </form>
         </div><?php
         if ($cita_id != null) {
-                $cita_id = intval($cita_id);
-                $cita = $horas_disponibles[$cita_id];
-                coger_cita($cita, $usu_id, $pdo);
+            $cita_id = intval($cita_id);
+            $cita = $horas_disponibles[$cita_id];
+            coger_cita($cita, $usu_id, $pdo);
         } else {
             return;
         }
@@ -128,7 +127,7 @@
                                 WHERE usuario_id = :usuario_id");
         $sent->execute(['usuario_id' => $usu_id]); 
     }
-    if ($sent != null) {
+    if ($sent->fetchColumn() != 0) {
         pintar_tabla($sent);
     }
     ?>
