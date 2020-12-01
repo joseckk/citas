@@ -62,7 +62,7 @@
         // Modificar fila
         if ($error === $error_vacio) {
             try {
-                $sent = $pdo->prepare("UPDATE usuario
+                $sent = $pdo->prepare("UPDATE usuarios
                                           SET login = :login
                                               $set
                                         WHERE id = :id");
@@ -80,7 +80,7 @@
     } else {
         if (isset($id)) {
             $sent = $pdo->prepare('SELECT *
-                                     FROM usuario
+                                     FROM usuarios
                                     WHERE id = :id');
             $sent->execute(['id'=> $id]);
             

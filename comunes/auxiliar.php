@@ -11,7 +11,11 @@ function banner()
 }
 function error($mensaje)
 {?>
-    <h3><?= $mensaje ?></h3><?php
+    <div class="row ml-5">
+        <div class="alert alert-danger mt-2" role="alert">
+                <?= $mensaje ?>
+        </div>
+    </div><?php
     return true;
 }
 function recoger($tipo, $nombre)
@@ -37,7 +41,7 @@ function logueado()
 function comprobar_usuario($login, $pdo)
 {
     $sent = $pdo->prepare('SELECT *
-                             FROM usuario
+                             FROM usuarios
                             WHERE login = :login');
     $sent->execute(['login' => $login]);
 
@@ -47,7 +51,7 @@ function comprobar_usuario($login, $pdo)
 function comprobar_usuario_otra_fila($login, $pdo, $id)
 {
     $sent = $pdo->prepare('SELECT *
-                             FROM usuario
+                             FROM usuarios
                             WHERE login = :login
                               AND id != :id');
     $sent->execute(['login' => $login,
@@ -55,10 +59,8 @@ function comprobar_usuario_otra_fila($login, $pdo, $id)
 
     return $sent->fetchColumn() != 0;
 }
-function comprobar_estado($id) 
+function comprobar_estado($id, $pdo) 
 {
-    $pdo = conectar();
-
     $sent = $pdo->prepare('SELECT *
                              FROM citas
                             WHERE usuario_id = :id');
@@ -66,12 +68,94 @@ function comprobar_estado($id)
 
     return $sent->fetchColumn() != 0;
 }
+function validar_fecha_hora($dia, $hora)
+{   
+    $fecha_valida = false;
+    $dia_fmt = date('D', strtotime($dia));
+    $hora_fmt = date('H', strtotime($hora));
+    $minuto = date('i', strtotime($hora));
 
+    if ($dia_fmt == 'Mon' || $dia_fmt == 'Wen'
+        || $dia_fmt == 'Fri') {
+            if ($hora_fmt >= '16'
+                && $hora_fmt < '20') {
+                if ($hora_fmt == '19') {
+                    if ($minuto <= '45') {
+                        $fecha_valida = true;
+                    } else {
+                        $fecha_valida = true;
+                    }
+                } else {
+                    $fecha_valida = true;
+                }
+            }
+    }
+    return $fecha_valida;
+}
+function comprobar_fecha_hora($fecha_hora, $pdo)
+{
+    $sent = $pdo->prepare('SELECT *
+                             FROM citas
+                            WHERE fecha_hora = :fecha_hora');
+    $sent->execute(['fecha_hora' => $fecha_hora]);
+
+    return $sent->fetchColumn() != 0;
+}
+function coger_cita($cita, $id, $pdo)
+{
+    $sent = $pdo->prepare("INSERT INTO citas(fecha_hora, usuario_id)
+                                VALUES (:fecha_hora, :usuario_id)");
+
+    $sent->execute([ 'fecha_hora' => $cita
+                    ,'usuario_id' => $id]);
+}
+function comprobar_cita($id, $pdo)
+{
+    $sent = $pdo->prepare('SELECT *
+                             FROM citas
+                            WHERE id = :id');
+    $sent->execute(['id' => $id]);
+
+    return $sent->fetchColumn() != 0;
+}
+function pintar_tabla($sent)
+{?>
+    <div class="row-md-12">
+    <table class="table table-hover table-bordered text-center">
+        <thead class="thead-dark">
+            <th scope="col">FECHA Y HORA</th>
+            <th scope="col">ACCIONES</th>
+        </thead>
+        <tbody>
+            <?php foreach ($sent as $fila):
+                extract($fila);?>
+                <tr>
+                    <td scope="row"><?= hh($fecha_hora) ?></td>
+                    <td scope="row">
+                        <form action="/citas/anular.php" method="post">
+                            <input type="hidden" name="id" value="<?=hh($id)?>">
+                            <input type="hidden" name="csrf_token"
+                                value="<?= $_SESSION['csrf_token'] ?>">
+                            <button type="submit" class="bg-danger">anular</button>
+                        </form>
+                        <a href="/citas/modificar.php?id=<?= hh($id) ?>">modificar</a>
+                    </td>
+                </tr>
+            <?php endforeach ?>
+        </tbody>
+    </table> 
+</div>
+</div><?php
+}
+function selected($a, $b)
+{
+    return ($a == $b) ? 'selected' : '';
+}
 function encabezado()
 {
     if ($logueado = logueado()): ?>
         <form class="row justify-content-end mt-2 mr-5" action="/comunes/logout.php" method="post">
-            <a class="col-sm-1" href="/usuarios/index.php"><h3><strong>Mi lista</strong></h3></a>
+            <a class="col-sm-1" href="/usuarios/miscitas.php"><h3><strong>Mis citas</strong></h3></a>
             <?= $logueado['nombre'] ?>
             <button type="submit" class="btn btn-outline-danger ml-2">Logout</button>
         </form><?php
@@ -86,14 +170,14 @@ function encabezado()
 function conectar() 
 {
 
-    $pdo = new PDO('pgsql:host=localhost;dbname=bd', 'joseka', 'joseka');
+    $pdo = new PDO('pgsql:host=localhost;dbname=bdCitas', 'josekas', 'josekas');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     return $pdo;
 }
 
 function volver() 
-{
+{   
     header('Location: ../index.php');
 }
 

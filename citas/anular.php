@@ -3,7 +3,7 @@ session_start();
 
 require '../comunes/auxiliar.php';
 
-comprobar_admin();
+comprobar_logueado();
 
 if (!isset($_POST['csrf_token'])) {
     volver();
@@ -15,19 +15,18 @@ if (!isset($_POST['csrf_token'])) {
 
 if (isset($_POST['id'])) {
 
-    $id = trim($_POST['id']);
+    $id = recoger_post('id');
     $pdo = conectar();
     
-    if (!comprobar_estado($id, $pdo)){
-        $sent = $pdo->prepare('DELETE FROM usuarios WHERE id = :id');
+    if (comprobar_cita($id, $pdo)){
+        $sent = $pdo->prepare('DELETE FROM citas WHERE id = :id');
         
         $sent->execute(['id' => $id]);
-        
-        $_SESSION['flash'] = 'Se ha borrado el usuario correctamente';
+
+        $_SESSION['flash'] = 'Se ha anulado la cita correctamente';
         volver();
     } else {
-        $_SESSION['flash'] = 'El usuario tiene una cita pendiente';
+        $_SESSION['flash'] = 'Error: la cita no existe';
         volver();
     }
 }
-volver();

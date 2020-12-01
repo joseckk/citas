@@ -1,4 +1,3 @@
-
 <?php session_start() ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -23,10 +22,10 @@
     $pdo = conectar();
         
     if ($login == '') {
-        $sent = $pdo->query("SELECT * FROM usuario");
+        $sent = $pdo->query("SELECT * FROM usuarios");
     } else {
         $sent = $pdo->prepare("SELECT *
-                                 FROM usuario
+                                 FROM usuarios
                                 WHERE login = :login");
         $sent->execute([':login' => $login]);
     }

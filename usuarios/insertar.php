@@ -63,7 +63,7 @@
         // Insertar fila
         if ($error === $error_vacio) {
             try {
-                    $sent = $pdo->prepare("INSERT INTO usuario(login, password)
+                    $sent = $pdo->prepare("INSERT INTO usuarios(login, password)
                                                 VALUES (:login, :password)");
 
                     $sent->execute([ ':login' => $login

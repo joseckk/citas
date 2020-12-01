@@ -23,7 +23,7 @@
     if (isset($login, $password)) {
         $pdo = conectar();
         $sent = $pdo->prepare('SELECT *
-                                 FROM usuario
+                                 FROM usuarios
                                 WHERE login = :login');
         $sent->execute(['login' => $login]);
         $fila = $sent->fetch();
