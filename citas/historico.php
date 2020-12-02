@@ -35,17 +35,12 @@
         </div>
 
         <?php 
-        $fecha = date("Y-m-d H:i:s");
-        $fecha_fmt = new DateTime($fecha);
-        $fecha_fmt->setTimezone(new DateTimeZone('Europe/Madrid'));
-        $fecha_hoy = $fecha_fmt->format("Y-m-d H:i:s");
-        if (comprobar_estado($usu_id, $fecha_hoy, $pdo)) {
+        if (comprobar_estado($usu_id, $pdo)) {
             $sent = $pdo->prepare("SELECT *
                                      FROM citas
-                                    WHERE fecha_hora > :fecha_hoy
+                                    WHERE fecha_hora > CURRENT_TIMESTAMP
                                       AND usuario_id = :usu_id");
-            $sent->execute(['fecha_hoy' => $fecha_hoy
-                          , 'usu_id' => $usu_id]);
+            $sent->execute(['usu_id' => $usu_id]);
         } else {?>
             <div class="row ml-5">
             <div class="alert alert-danger mt-2" role="alert">

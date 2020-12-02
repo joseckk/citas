@@ -24,12 +24,10 @@ function recoger($tipo, $nombre)
         'options' => 'trim'
     ]);
 }
-
 function recoger_get($nombre)
 {
     return recoger(INPUT_GET, $nombre);
 }
-
 function recoger_post($nombre)
 {
     return recoger(INPUT_POST, $nombre);
@@ -59,16 +57,15 @@ function comprobar_usuario_otra_fila($login, $pdo, $id)
 
     return $sent->fetchColumn() != 0;
 }
-function comprobar_estado($id, $fecha_hoy, $pdo) 
+function comprobar_estado($id, $pdo) 
 {
     $sent = $pdo->prepare("SELECT *
                              FROM citas
-                            WHERE fecha_hora > :fecha_hoy
+                            WHERE fecha_hora > CURRENT_TIMESTAMP
                               AND usuario_id = :usu_id");
-    $sent->execute(['fecha_hoy' => $fecha_hoy
-                  , 'usu_id' => $id]);
+    $sent->execute(['usu_id' => $id]);
 
-    return $sent->fetchColumn() != 0;
+    return $sent->fetch();
 }
 function validar_fecha_hora($dia, $hora)
 {   

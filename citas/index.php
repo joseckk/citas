@@ -17,8 +17,22 @@
         $_SESSION['csrf_token'] = bin2hex(openssl_random_pseudo_bytes(32));
     }
 
-    $cita_id = recoger_get('cita_id');
+    $pdo = conectar();
 
+    $usu_id = logueado()['id'];
+
+    $dia = recoger_get('dia');
+
+    $dia_post = recoger_post('dia');
+    $hora_post = recoger_post('hora');
+    $hora = $hora_post;
+
+    if (isset($dia_post, $hora_post)) {
+        if (validar_fecha_hora($dia_post, $hora_post)) {
+            $fecha_cita = "$dia_post $hora_post";
+            coger_cita($fecha_cita, $usu_id, $pdo);
+        }
+    }
     ?>
 
     <div class="container-fluid">
@@ -35,99 +49,97 @@
         </div>
 
     <?php
-    $pdo = conectar();
-    $usu_id = logueado()['id'];
-    $sent = null;
-    $fecha = date("Y-m-d H:i:s");
-    $fecha_fmt = new DateTime($fecha);
-    $fecha_fmt->setTimezone(new DateTimeZone('Europe/Madrid'));
-    $fecha_hoy = $fecha_fmt->format("Y-m-d H:i:s");
-    if (comprobar_estado($usu_id, $fecha_hoy, $pdo)) {
-        $sent = $pdo->prepare("SELECT *
-                                 FROM citas
-                                WHERE usuario_id = :usu_id");
-        $sent->execute(['usu_id' => $usu_id]);   
-    } else {?>
-        <div class="row ml-5">
-        <div class="alert alert-danger mt-2" role="alert">
-            <?= 'No tiene cita asignada' ?>
-        </div>
-        </div><?php
-        $dia = $fecha_fmt->format('d-m-Y');
-        $hora = $fecha_fmt->format('H:i:s');
-            
-        $proximo_dia = strtotime('+1 day', strtotime($dia)) ;
-        $proximo_dia = date('d-m-Y', $proximo_dia);
-    
-        $ultimo_dia = strtotime('+1 month', strtotime($proximo_dia)) ;
-        $ultimo_dia = date('d-m-Y', $ultimo_dia);
-    
-    
-        $horas_disponibles = [];
-        $dia_fmt = $proximo_dia;
-        $hora_fmt = '16:00:00';
-        $contador = 0;
-        $indice = 0;
-        $no_existe = false;
-        for ($i=0; $dia_fmt != $ultimo_dia; $i++) {
-            $hora_fmt = strtotime('+15 minute', strtotime($hora_fmt)) ;
-            $hora_fmt = date('H:i:s', $hora_fmt);
-    
-            $hora_limit = date('H', strtotime($hora_fmt));
-            if ($hora_limit == '00') {
-                if ($contador % 4 == 0) {
-                    $dia_fmt = strtotime('+1 day', strtotime($dia_fmt));
-                    $dia_fmt = date('d-m-Y', $dia_fmt);
-                }
-                $contador++;
+    if (!comprobar_estado($usu_id, $pdo)) {
+        // Ese usuario no tiene citas vigentes
+        // Darle la opción de reservar una
+        $sent = $pdo->query('SELECT fecha_hora::date AS fecha
+                               FROM citas
+                              WHERE fecha_hora::date != CURRENT_DATE
+                           GROUP BY 1
+                             HAVING COUNT(*) >= 16
+                           ORDER BY 1');
+        $fechasOcupadas = $sent->fetchAll(PDO::FETCH_COLUMN, 0);
+        $fechas = [];
+        $intervalo = new DateInterval('P1D');
+        $fechaActual = (new DateTime())->add($intervalo);
+        $i = 0;
+        while ($i < 30) {
+            $dow = $fechaActual->format('w');
+            $fecha = $fechaActual->format('Y-m-d');
+            if (in_array($dow, ['1', '3', '5'])
+                && !in_array($fecha, $fechasOcupadas)) {
+                $fechas[] = $fecha;
             }
-            if (validar_fecha_hora($dia_fmt, $hora_fmt)) {
-                $f = $dia_fmt . ' ' . $hora_fmt;
-                if (!comprobar_fecha_hora($f, $pdo)) {
-                    $horas_disponibles[$indice] = $f;
-                    $indice++;
-                } else {                        
-                    $horas_disponibles[$i] ?? $no_existe = true;
-                    if (!$no_existe) {
-                        if ($horas_disponibles[$i] == $f) {
-                            unset($horas_disponibles[$i]);
-                        }
-                    }
-                }
-            }
-        }
-        ?>
-        <div class="row-md-12">
-            <form action="" method="get">
-                <div class="form-group mt-1">
-                    <label class="col-lg-4 control-label" for="cita_id"><strong>Fecha y hora de la cita:</strong></label>
-                    <div class="col-lg-4">
-                        <select class="form-control" name="cita_id" id="cita_id">
-                            <option value="<?= '' ?>
-                            <?php for ($i=0; $i <= sizeof($horas_disponibles)-1; $i++) :?>
-                                <option value="<?= $i ?>" <?= selected($cita_id, $i) ?>>
-                                    <?= hh($horas_disponibles[$i]) ?>
-                                </option>
-                            <?php endfor ?>
-                        </select>
-                        <button type="submit" class="btn btn-primary mt-3">coger cita</button>
-                    </div>
-                </div>
-            </form>
-        </div><?php
-        if ($cita_id != null) {
-            $cita_id = intval($cita_id);
-            $cita = $horas_disponibles[$cita_id];
-            coger_cita($cita, $usu_id, $pdo);
-        } else {
+            $i++;
+            $fechaActual->add($intervalo);
+        } ?>
+    <form action="" method="get">
+        <label for="dia">Seleccione el día de la cita:</label>
+        <select name="dia" id="dia">
+            <?php foreach ($fechas as $f): ?>
+                <option value="<?= $f ?>" <?= selected($dia, $f) ?> >
+                    <?= $f ?>
+                </option>
+            <?php endforeach ?>
+        </select>
+        <button type="submit">Seleccionar</button>
+    </form>
+    <?php
+    if ($dia !== null) {
+        $match = [];
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dia, $match) !== 1) {
+            volver();
             return;
         }
-        $sent = $pdo->prepare("SELECT * 
+        if (!checkdate($match[2], $match[3], $match[1])) {
+            volver();
+            return;
+        }
+        $sent = $pdo->prepare('SELECT fecha_hora::time(0) AS hora
+                                FROM citas
+                                WHERE fecha_hora::date = :dia
+                            ORDER BY 1');
+        $sent->execute(['dia' => $dia]);
+        $horasOcupadas = $sent->fetchAll(PDO::FETCH_COLUMN, 0);
+        $madrid = new DateTimeZone('Europe/Madrid');
+        foreach ($horasOcupadas as $k => $h) {
+            $hh = DateTime::createFromFormat('H:i:s', $h);
+            $hh->setTimeZone($madrid);
+            $horasOcupadas[$k] = $hh->format('H:i:s');
+        }
+        $horas = [];
+        $intervalo = new DateInterval('PT15M');
+        $utc = new DateTimeZone('UTC');
+        $horaActual = (new DateTime())->setTimezone($madrid)->setTime(16, 0, 0);
+        $horaFin = clone $horaActual;
+        $horaFin->setTime(20, 0, 0);
+        while ($horaActual < $horaFin) {
+            if (!in_array($horaActual->format('H:i:s'), $horasOcupadas)) {
+                $horas[] = $horaActual->format('H:i:s');
+            }
+            $horaActual->add($intervalo);
+        } ?>
+        <form action="" method="post">
+            <input type="hidden" name="dia" value="<?= $dia ?>">
+            <label for="hora">Seleccione la hora:</label>
+            <select name="hora" id ="hora">
+                <?php foreach ($horas as $h): ?>
+                    <option value="<?= $h ?>" <?= selected($h, $hora) ?> >
+                        <?= $h ?>
+                    </option>
+                <?php endforeach ?>
+            </select>
+            <button type="submit">Reservar</button>
+        </form>
+        <?php
+        }
+    } else {
+        // El usuario tiene citas vigentes
+        $sent = $pdo->prepare("SELECT *
                                  FROM citas
-                                WHERE usuario_id = :usuario_id");
-        $sent->execute(['usuario_id' => $usu_id]); 
-    }
-    if ($sent->fetchColumn() != 0) {
+                                WHERE fecha_hora > CURRENT_TIMESTAMP
+                                  AND usuario_id = :usu_id");
+        $sent->execute(['usu_id' => $usu_id]);
         pintar_tabla($sent);
     }
     ?>
