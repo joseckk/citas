@@ -69,6 +69,7 @@
             if (in_array($dow, ['1', '3', '5'])
                 && !in_array($fecha, $fechasOcupadas)) {
                 $fechas[] = $fecha;
+                // var_dump($fechasOcupadas);
             }
             $i++;
             $fechaActual->add($intervalo);
@@ -96,15 +97,15 @@
             return;
         }
         $sent = $pdo->prepare('SELECT fecha_hora::time(0) AS hora
-                                FROM citas
+                                 FROM citas
                                 WHERE fecha_hora::date = :dia
-                            ORDER BY 1');
+                             ORDER BY 1');
         $sent->execute(['dia' => $dia]);
         $horasOcupadas = $sent->fetchAll(PDO::FETCH_COLUMN, 0);
         $madrid = new DateTimeZone('Europe/Madrid');
         foreach ($horasOcupadas as $k => $h) {
             $hh = DateTime::createFromFormat('H:i:s', $h);
-            $hh->setTimeZone($madrid);
+            //$hh->setTimeZone($madrid);
             $horasOcupadas[$k] = $hh->format('H:i:s');
         }
         $horas = [];

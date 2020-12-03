@@ -61,8 +61,8 @@ function comprobar_estado($id, $pdo)
 {
     $sent = $pdo->prepare("SELECT *
                              FROM citas
-                            WHERE fecha_hora > CURRENT_TIMESTAMP
-                              AND usuario_id = :usu_id");
+                            WHERE usuario_id = :usu_id
+                              AND fecha_hora > CURRENT_TIMESTAMP");
     $sent->execute(['usu_id' => $id]);
 
     return $sent->fetch();
